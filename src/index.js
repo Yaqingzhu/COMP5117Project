@@ -2,9 +2,11 @@ const request = require('request');
 const fs = require('fs');
 const {BigQuery} = require('@google-cloud/bigquery');
 const jsoncsv = require('csvjson-json2csv');
+const { Octokit } = require("@octokit/core");
+const token = 'e9edd83c409c7961fda26337c19b077f6aa43318'
 
 
-let rawdata = fs.readFileSync('C:/Users/yaqin/Documents/GitHub/COMP5117Project/src/new3.json');
+let rawdata = fs.readFileSync('C:/Users/yaqin/Documents/GitHub/COMP5117Project/src/new4.json');
 let student = JSON.parse(rawdata);
 
 // const ndJson = student.map(JSON.stringify).join('\n');
@@ -20,52 +22,51 @@ const bigqueryClient = new BigQuery();
 // let text = buff.toString('ascii');
 updateFuncNameToFile();
 
-console.log(student);
-
 async function updateFuncNameToFile(){
     await getFunctionName();
 }
 
 async function getFunctionName(){
-    for(let element of student){
-       await doProcess(element);
+    let count = 4000;
+
+    for(count; count<student.length; count++){
+        await doProcess(student[count]);
     }
 }
 
 async function doProcess(element){
     const sha = element.fixCommitSHA1;
-    const projectName = String(element.projectName).replace('.', '/');
-    const url = `https://api.github.com/repos/${projectName}/commits/${sha}`
+    const projectNames = String(element.projectName).split('.');
+    const octokit = new Octokit({ auth: "e9edd83c409c7961fda26337c19b077f6aa43318" });
+    const response = await octokit.request('GET /repos/{owner}/{repo}/commits/{commit_sha}', {
+        owner:projectNames[0],
+        repo: projectNames[1],
+        commit_sha: sha}).catch(error=> console.log(error));
+        if(response){
+            const info = response.data;
+            console.log(response.data);
+            const files = info.files;
+            const len = files.length;
+            element.commitDate = info.commit.author.date;
+            
+            let i;
 
-    const options = {
-        url: url,
-        headers: {
-          'User-Agent': 'request'
-        }
-      };
-
-    request(options, function(error, response, body){
-        const info = JSON.parse(body);
-        const files = info.files;
-        const len = files.length;
-        
-        let i;
-
-        for(i = 0; i < len; i++){
-            if(files[i].filename.includes(element.bugFilePath) || element.bugFilePath.includes(files[i].filename)){
-                const url2 = files[i].raw_url;
-                const options2 = {
-                    url: url2,
-                    headers: {
-                      'User-Agent': 'request'
-                    }
-                  };
-                request(options2, (error, response, body) => {
-                    checkFunctionName(error, response, body, element.fixLineNum, element);
-                });
+            for(i = 0; i < len; i++){
+                if(files[i].filename.includes(element.bugFilePath) || element.bugFilePath.includes(files[i].filename)){
+                    const url2 = files[i].raw_url;
+                    const options2 = {
+                        url: url2,
+                        headers: {
+                            'User-Agent': 'request'
+                        }
+                        };
+                    request(options2, (error, response, body) => {
+                        checkFunctionName(error, response, body, element.fixLineNum, element);
+                    });
+                }
             }
         }
-    });
+            
 }
 
 function checkFunctionName(error, response, body, lineNum, element){
