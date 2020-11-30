@@ -2,6 +2,8 @@
 This is the project for COMP5117
 Language is nodejs
 
+for token used by each file, please use this webpage to generate it: https://docs.github.com/en/enterprise-server@2.20/github/authenticating-to-github/creating-a-personal-access-token
+
 
 index2.js is the code to download and unzip repos. Those repos is selected based on these rules:
 1. check the year of the this commit;
