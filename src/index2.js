@@ -10,22 +10,25 @@ const token = 'e9edd83c409c7961fda26337c19b077f6aa43318'
 let rawdata = fs.readFileSync('C:/Users/yaqin/Documents/GitHub/COMP5117Project/src/test_zipDown.json');
 let student = JSON.parse(rawdata);
 let repoCommitSHA = new Map();
-getFunctionName();
+downloadRepo();
 
-function getFunctionName(){
+function downloadRepo(){
     let count = 0;
-
     for(count; count<student.length; count++){
-        doProcess(student[count]);
+        if(!repoCommitSHA.has(student[count].commityear + '.' + student[count].projectName)){
+            const temp = 
+            repoCommitSHA.set(student[count].commityear + '.' + student[count].projectName, student[count].fixCommitSHA1);
+        }
     }
+
+    doProcess();
+    //
 
     console.log(repoCommitSHA);
 }
 
-function doProcess(element){
-    if(!repoCommitSHA.has(element.commityear + '.' + element.projectName)){
-        repoCommitSHA.set(element.commityear + '.' + element.projectName, element.fixCommitSHA1);
-    }
+// this function will download repo from github and unzip it.
+function doProcess(){
     
     for (let key of repoCommitSHA.keys()) {
         console.log(key);
@@ -53,3 +56,4 @@ function downloadZip(path, localPath, localPathFile){
         .pipe(unzipper.Extract({ path: localPath })).on('close', function() {console.log('file unzip finished.')});
     });
 }
+

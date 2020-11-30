@@ -27,7 +27,7 @@ async function updateFuncNameToFile(){
 }
 
 async function getFunctionName(){
-    let count = 4000;
+    let count = 8300;
 
     for(count; count<student.length; count++){
         await doProcess(student[count]);
@@ -37,7 +37,7 @@ async function getFunctionName(){
 async function doProcess(element){
     const sha = element.fixCommitSHA1;
     const projectNames = String(element.projectName).split('.');
-    const octokit = new Octokit({ auth: "e9edd83c409c7961fda26337c19b077f6aa43318" });
+    const octokit = new Octokit({ auth: "7419f8128ff7d71c7abf3cc559fe5ddcb0c8bc88"});
     const response = await octokit.request('GET /repos/{owner}/{repo}/commits/{commit_sha}', {
         owner:projectNames[0],
         repo: projectNames[1],
