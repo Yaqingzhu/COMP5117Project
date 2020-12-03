@@ -12,6 +12,7 @@ let student = JSON.parse(rawdata);
 let repoCommitSHA = new Map();
 downloadRepo();
 
+// this is the function to download repos from github. The repos are projects in the sstubs dataset. I selected one repo per year per project.
 function downloadRepo(){
     let count = 0;
     for(count; count<student.length; count++){
