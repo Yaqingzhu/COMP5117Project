@@ -35,43 +35,36 @@ function doProcess(){
 
 function searchUnitTestCodeBasedOnPattern(localPath, pattern, intialFileName, sha){
     var glob = require("glob");
+    let opt1 = [];
 
     // this will read all java files from above localPath, and call the function(er,files).
-    glob(localPath + "/**/*.java", function (er, files) {
-        let opt1 = [];
-        if (er) {
-            console.log('Error', er);
-          } else {
-            //here, is the loop to read each java file.
-              for(let file of files){
-                let rawdata = fs.readFileSync(file); // read the file.
-                //pattern is what we want to search from each file. Now, it's the actual java function name(where the code change happened).
-                // for example, the first one in dataset, the code change is done in function called fillPreviousFormValues. Then now, the code will find any other files that call fillPreviousFormValues.
-                if(rawdata.includes(pattern)){
-                    console.log('possible file ' + file);
-                    // if the file contains fillPreviousFormValues. We need to do more vaildation to make sure this caller function is a unit test.
-                    if(!file.includes(intialFileName)){
-                        console.log('possible file ' + file);
-                        //if it is unit test, then put the SHA and unit test name to a json.
-                        const unitTestName = getUnitTestFuncName(rawdata, pattern);
-                        opt1.push({sha:sha, unitTestName: unitTestName});
-                    }
-                }
-              }
-              if(opt1.length == 0){
-                console.log("opt is empty")
-                opt1 = [{sha:sha, unitTestName: null}];
-              }
-              console.log(opt1)
-              const ndJson = opt1.map(JSON.stringify).join('\n');
-              const ndJson2 = ndJson + '\n'
-              // then finally, the code output all {SHA and unittest} to files.
-              fs.appendFile('C:/Users/yaqin/Documents/GitHub/COMP5117Project/src/sha_unittestName.json', ndJson2, function (err) {
-                if (err) return console.log(err);
-                console.log('Hello World > helloworld.txt');
-              });
-          }
+    glob.sync(localPath + "/**/*.java").map( function (file) {
+        
+    //here, is the loop to read each java file.
+        let rawdata = fs.readFileSync(file); // read the file.
+        //pattern is what we want to search from each file. Now, it's the actual java function name(where the code change happened).
+        // for example, the first one in dataset, the code change is done in function called fillPreviousFormValues. Then now, the code will find any other files that call fillPreviousFormValues.
+        if(rawdata.includes(pattern)){
+            console.log('possible file ' + file);
+            // if the file contains fillPreviousFormValues. We need to do more vaildation to make sure this caller function is a unit test.
+            if(!file.includes(intialFileName)){
+                console.log('possible file ' + file);
+                //if it is unit test, then put the SHA and unit test name to a json.
+                const unitTestName = getUnitTestFuncName(rawdata, pattern);
+                opt1.push({sha:sha, unitTestName: unitTestName});
+            }
+        }
       });
+
+      if(opt1.length == 0){
+        console.log("opt is empty")
+        opt1 = [{sha:sha, unitTestName: null}];
+        }
+        console.log(opt1)
+        const ndJson = opt1.map(JSON.stringify).join('\n');
+        const ndJson2 = ndJson + '\n'
+        // then finally, the code output all {SHA and unittest} to files.
+        fs.appendFileSync('C:/Users/yaqin/Documents/GitHub/COMP5117Project/src/sha_unittestName.json', ndJson2);
 }
 
 // this is the code to find the name of the unit test function.
