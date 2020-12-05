@@ -36,6 +36,10 @@ function doProcess(){
 function searchUnitTestCodeBasedOnPattern(localPath, pattern, intialFileName, sha){
     var glob = require("glob");
     let opt1 = [];
+    const pattern1 = pattern + '('
+    const pattern2 = pattern + ' ('
+    if(!pattern)
+        return;
 
     // this will read all java files from above localPath, and call the function(er,files).
     glob.sync(localPath + "/**/*.java").map( function (file) {
@@ -44,16 +48,25 @@ function searchUnitTestCodeBasedOnPattern(localPath, pattern, intialFileName, sh
         let rawdata = fs.readFileSync(file); // read the file.
         //pattern is what we want to search from each file. Now, it's the actual java function name(where the code change happened).
         // for example, the first one in dataset, the code change is done in function called fillPreviousFormValues. Then now, the code will find any other files that call fillPreviousFormValues.
-        if(rawdata.includes(pattern)){
-            console.log('possible file ' + file);
+        if(rawdata && (rawdata.includes(pattern1) || rawdata.includes(pattern2))){
             // if the file contains fillPreviousFormValues. We need to do more vaildation to make sure this caller function is a unit test.
             if(!file.includes(intialFileName)){
                 console.log('possible file ' + file);
                 //if it is unit test, then put the SHA and unit test name to a json.
                 const unitTestName = getUnitTestFuncName(rawdata, pattern);
-                opt1.push({sha:sha, unitTestName: unitTestName});
+                if(unitTestName){
+                    opt1.push({sha:sha, unitTestName: unitTestName, isunitTest: false});
+                }
+            } else {
+                // check if the function is unit test itself.
+    
+                if(isUnitTestSelf(rawdata, pattern)){
+                    opt1.push({sha:sha, unitTestName: pattern, isunitTest: true});
+                } else if(intialFileName.includes('src/test')){
+                    opt1.push({sha:sha, unitTestName: pattern, isunitTest: true});
+                }
             }
-        }
+        } 
       });
 
       if(opt1.length == 0){
@@ -67,11 +80,8 @@ function searchUnitTestCodeBasedOnPattern(localPath, pattern, intialFileName, sh
         fs.appendFileSync('C:/Users/yaqin/Documents/GitHub/COMP5117Project/src/sha_unittestName.json', ndJson2);
 }
 
-// this is the code to find the name of the unit test function.
-function getUnitTestFuncName(body, pattern){
-    
-    const javaCode = body.toString();
-    const lines = javaCode.split(/\r\n|\r|\n/);
+function isUnitTestSelf(rawdata, pattern){
+    const lines = rawdata.toString().split(/\r\n|\r|\n/)
     let lineNum = 0;
 
     for(lineNum; lineNum < lines.length; lineNum++){
@@ -79,16 +89,56 @@ function getUnitTestFuncName(body, pattern){
             break;
         }
     }
-    
+
     for(lineNum; lineNum >= 0; lineNum--){
         if(lines[lineNum].includes('protected ') || lines[lineNum].includes('public ') || lines[lineNum].includes('private ')){
-            if(isUnitTestFunction(javaCode, lineNum + 1)){
-                console.log('is unit test');
-                const funcName = getName(lines[lineNum]);
-                return funcName;
-            }
+            const funcName = getName(lines[lineNum]);
+            console.log(funcName);
+            break;
         }
     }
+    lineNum = lineNum + 1;
+    for(lineNum; lineNum < lines.length; lineNum++){
+        if(lines[lineNum - 1] && lines[lineNum - 1].charAt(0)=='}' && (lines[lineNum].includes('protected ') || lines[lineNum].includes('public ') || lines[lineNum].includes('private '))){
+            return false;
+        }else if(lines[lineNum].includes('assert')){
+            return true;
+        }
+    }
+}
+// this is the code to find the name of the unit test function.
+function getUnitTestFuncName(body, pattern){
+    
+    const javaCode = body.toString();
+    const lines = javaCode.split(/\r\n|\r|\n/);
+    let lineNum = 0;
+    const pat1 = pattern + '('
+    const pat2 = pattern + ' ('
+
+    for(lineNum; lineNum < lines.length; lineNum++){
+        if((lines[lineNum].includes(pat1)||lines[lineNum].includes(pat2)) && (lines[lineNum].includes('protected ') || lines[lineNum].includes('public ') || lines[lineNum].includes('private '))){
+            return null;
+        }
+        if((lines[lineNum].includes(pat1)||lines[lineNum].includes(pat2))){
+            break;
+        }
+    }
+    
+    if(lineNum < lines.length){
+        for(lineNum; lineNum >= 0; lineNum--){
+            if(lines[lineNum]){
+                if(lines[lineNum].includes('protected ') || lines[lineNum].includes('public ') || lines[lineNum].includes('private ')){
+                    if(isUnitTestFunction(javaCode, lineNum + 1)){
+                        console.log('is unit test');
+                        const funcName = getName(lines[lineNum]);
+                        return funcName;
+                    }
+                }
+            }
+            
+        }
+    }
+    
 
     return null;
 }
